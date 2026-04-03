@@ -21,7 +21,7 @@ class BorrowerIdentityResource extends JsonResource
             'middle_name' => $this->middle_name,
             'last_name' => $this->last_name,
             'date_of_birth' => $this->date_of_birth?->format('Y-m-d'),
-            'ssn_last4' => $request->is('api/voice/*')
+            'ssn_last4' => self::isVoiceApiRequest($request)
                 ? PiiRedactor::maskSsnForVoiceJson($this->ssn_last4)
                 : $this->ssn_last4,
             'address_line1' => $this->address_line1,
@@ -33,5 +33,15 @@ class BorrowerIdentityResource extends JsonResource
             'citizenship_status' => $this->citizenship_status,
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
+    }
+
+    /**
+     * Voice tool responses use /api/voice/*; mask SSN there only (Sanctum JSON API keeps full last-4 for authorized staff).
+     */
+    private static function isVoiceApiRequest(Request $request): bool
+    {
+        $path = ltrim($request->path(), '/');
+
+        return str_starts_with($path, 'api/voice/');
     }
 }

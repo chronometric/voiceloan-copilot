@@ -34,7 +34,9 @@ class TwilioSmsService
 
         $url = "https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json";
 
-        $response = Http::withBasicAuth($sid, $token)
+        $response = Http::timeout(20)
+            ->connectTimeout(10)
+            ->withBasicAuth($sid, $token)
             ->asForm()
             ->post($url, [
                 'From' => $from,

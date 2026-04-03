@@ -41,3 +41,4 @@ Goal: **call (or simulated session) → voice collects/updates data → dashboar
 - [ ] Rate limits and TCPA/consent copy reviewed (`config/compliance.php`, README Phase 5)  
 - [ ] Twilio numbers and consent flow aligned with counsel  
 - [ ] Backup / retention policy for `audit_logs` and borrower PII  
+- [ ] `composer install` and `composer test` pass in CI or before release  

@@ -9,6 +9,14 @@ Session-based **auth** (`/login`, `/register`), **borrowers** plus **identity**,
 3. SQLite (default): ensure `database/database.sqlite` exists; `DB_CONNECTION=sqlite` in `.env`
 4. `php artisan migrate`
 
+### Tests
+
+```bash
+composer test
+```
+
+Uses SQLite in-memory (`phpunit.xml`). Voice bridge API tests expect `VOICE_BRIDGE_KEY=test-voice-bridge-key` (set in PHPUnit env).
+
 ### Phase 1 (dashboard + API)
 
 - **Web:** `/dashboard`, `/borrowers` (list/create/edit with tabs: Main, Identity, Employment, Assets, Declarations, Audit)

@@ -2,8 +2,16 @@
  * Server-to-server calls to Laravel /api/voice/* with X-Voice-Bridge-Key.
  */
 
+const DEFAULT_FETCH_MS = 30000;
+
+function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_FETCH_MS) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+}
+
 export async function registerSession(laravelUrl, bridgeKey, callSid, borrowerUuid) {
-  const res = await fetch(`${laravelUrl.replace(/\/$/, '')}/api/voice/sessions`, {
+  const res = await fetchWithTimeout(`${laravelUrl.replace(/\/$/, '')}/api/voice/sessions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -20,7 +28,7 @@ export async function registerSession(laravelUrl, bridgeKey, callSid, borrowerUu
 }
 
 export async function executeVoiceTool(laravelUrl, bridgeKey, callSid, name, args) {
-  const res = await fetch(`${laravelUrl.replace(/\/$/, '')}/api/voice/tools`, {
+  const res = await fetchWithTimeout(`${laravelUrl.replace(/\/$/, '')}/api/voice/tools`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
