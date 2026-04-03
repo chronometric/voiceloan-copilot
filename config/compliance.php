@@ -3,6 +3,16 @@
 return [
 
     /*
+    | Outbound SMS / automated voice (TCPA / consent).
+    |
+    | This app does not record consent; configure capture in your CRM or telephony flow.
+    | Before production: obtain express written consent where required, honor STOP/OPT-OUT,
+    | maintain an internal DNC list, and align `sms_footer` / voice scripts with counsel.
+    | See README Phase 5 for env secrets and operational notes.
+    */
+    'tcpa_consent_note' => env('COMPLIANCE_TCPA_NOTE'),
+
+    /*
     | Injected into URLA/voice system prompts (and exposed in get_urla_context).
     */
     'voice_disclaimer' => env('COMPLIANCE_VOICE_DISCLAIMER', <<<'TXT'

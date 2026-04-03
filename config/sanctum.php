@@ -12,7 +12,11 @@ return [
 
     'guard' => ['web'],
 
-    'expiration' => null,
+    /*
+    | Token lifetime in minutes (null = no expiry). Rotate by lowering and re-login, or
+    | `php artisan sanctum:revoke-tokens --all` after key compromise.
+    */
+    'expiration' => ($m = env('SANCTUM_TOKEN_EXPIRATION')) !== null && $m !== '' ? (int) $m : null,
 
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 

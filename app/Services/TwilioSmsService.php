@@ -43,11 +43,11 @@ class TwilioSmsService
             ]);
 
         if (! $response->successful()) {
-            AuditLogger::logBorrowerEvent($borrower->id, 'sms_failed', 'sms.outbound', [
+            AuditLogger::logBorrowerEvent($borrower->id, 'sms_failed', 'sms.outbound', PiiRedactor::redactSmsAuditPayload([
                 'to' => $to,
                 'http_status' => $response->status(),
-                'twilio_body' => $response->body(),
-            ]);
+                'twilio_body' => Str::limit($response->body(), 500),
+            ]));
 
             return [
                 'ok' => false,
@@ -59,11 +59,11 @@ class TwilioSmsService
         $json = $response->json();
         $twilioSid = $json['sid'] ?? null;
 
-        AuditLogger::logBorrowerEvent($borrower->id, 'sms_sent', 'sms.outbound', [
+        AuditLogger::logBorrowerEvent($borrower->id, 'sms_sent', 'sms.outbound', PiiRedactor::redactSmsAuditPayload([
             'to' => $to,
             'twilio_sid' => $twilioSid,
             'body_preview' => Str::limit($body, 160),
-        ]);
+        ]));
 
         return ['ok' => true, 'twilio_sid' => $twilioSid];
     }

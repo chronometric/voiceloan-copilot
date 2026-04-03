@@ -3,6 +3,7 @@
 namespace App\Services\Urla1003;
 
 use App\Models\Borrower;
+use App\Services\PiiRedactor;
 
 class Urla1003SnapshotService
 {
@@ -56,7 +57,7 @@ class Urla1003SnapshotService
         foreach ($paths as $path) {
             $v = $this->resolver->value($borrower, $path);
             if (! $this->isEffectivelyEmpty($v)) {
-                $snap[$path] = $v;
+                $snap[$path] = PiiRedactor::maskUrlaSnapshot($path, $v);
             }
         }
 

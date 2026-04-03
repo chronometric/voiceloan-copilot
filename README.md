@@ -63,6 +63,14 @@ Set `VOICE_BRIDGE_KEY` in Laravel `.env` (same value as `voice-bridge/.env` `VOI
 - **Compliance:** `config/compliance.php` — `voice_disclaimer` (injected into URLA prompt pack + line about `transfer_to_human`), `sms_footer`, `transfer_status` (default `escalated`).
 - **transfer_to_human:** voice tool sets borrower `status` to `transfer_status` (must be in `config/borrower.statuses`); optional `reason` stored in `last_tool_results` / tool response.
 
+### Phase 5 — Security & compliance hardening
+
+- **Secrets:** API keys and bridge credentials live only in `.env` / deployment secrets (`OPENAI_*`, `TWILIO_*`, `VOICE_BRIDGE_KEY`, `APP_KEY`). The voice bridge authenticates with `X-Voice-Bridge-Key`, **not** Sanctum; rotate the bridge key by updating Laravel + `voice-bridge/.env` and restarting the Node service.
+- **Sanctum tokens:** Optional expiry via `SANCTUM_TOKEN_EXPIRATION` (minutes). After compromise or key rotation, revoke all API tokens: `php artisan sanctum:revoke-tokens --all` (clients must log in again).
+- **PII:** `borrower_identity.ssn_last4` is stored encrypted at rest (`encrypted` cast). `audit_logs` redact sensitive keys; SMS audit entries mask destination numbers. Voice/URLA JSON masks SSN in `BorrowerResource` for `api/voice/*` and masks `identity.ssn_last4` in URLA compact snapshots sent to the model.
+- **TCPA / consent:** `config/compliance.php` documents that consent capture and legal copy are your responsibility; customize `sms_footer`, voice disclaimers, and internal policies with counsel before production outreach.
+- **Rate limits:** `config/rate_limits.php` + `AppServiceProvider` — `throttle:login` on `POST /api/login`, `throttle:voice` on `/api/voice/*`, `throttle:api` on Sanctum JSON API. Tune with `RATE_LIMIT_LOGIN_PER_MINUTE`, `RATE_LIMIT_VOICE_PER_MINUTE`, `RATE_LIMIT_API_PER_MINUTE`.
+
 ---
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>

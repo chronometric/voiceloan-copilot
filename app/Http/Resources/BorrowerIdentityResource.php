@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\PiiRedactor;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,7 +21,9 @@ class BorrowerIdentityResource extends JsonResource
             'middle_name' => $this->middle_name,
             'last_name' => $this->last_name,
             'date_of_birth' => $this->date_of_birth?->format('Y-m-d'),
-            'ssn_last4' => $this->ssn_last4,
+            'ssn_last4' => $request->is('api/voice/*')
+                ? PiiRedactor::maskSsnForVoiceJson($this->ssn_last4)
+                : $this->ssn_last4,
             'address_line1' => $this->address_line1,
             'address_line2' => $this->address_line2,
             'city' => $this->city,

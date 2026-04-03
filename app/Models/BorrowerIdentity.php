@@ -29,6 +29,7 @@ class BorrowerIdentity extends Model
     {
         return [
             'date_of_birth' => 'date',
+            'ssn_last4' => 'encrypted',
         ];
     }
 

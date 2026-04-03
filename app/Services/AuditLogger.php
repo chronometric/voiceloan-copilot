@@ -16,7 +16,7 @@ class AuditLogger
             return;
         }
 
-        self::write($borrowerId, $model, 'created', null, self::sanitizeAttributes($model->getAttributes()));
+        self::write($borrowerId, $model, 'created', null, PiiRedactor::redactAudit(self::sanitizeAttributes($model->getAttributes())));
     }
 
     public static function logUpdated(Model $model): void
@@ -38,7 +38,7 @@ class AuditLogger
             $old[$key] = $model->getOriginal($key);
         }
 
-        self::write($borrowerId, $model, 'updated', $old, $changes);
+        self::write($borrowerId, $model, 'updated', PiiRedactor::redactAudit($old), PiiRedactor::redactAudit($changes));
     }
 
     public static function logDeleted(Model $model): void
@@ -48,7 +48,7 @@ class AuditLogger
             return;
         }
 
-        self::write($borrowerId, $model, 'deleted', self::sanitizeAttributes($model->getOriginal()), null);
+        self::write($borrowerId, $model, 'deleted', PiiRedactor::redactAudit(self::sanitizeAttributes($model->getOriginal())), null);
     }
 
     /**
@@ -65,7 +65,7 @@ class AuditLogger
             'entity_type' => $entityType,
             'entity_id' => null,
             'old_values' => null,
-            'new_values' => $newValues,
+            'new_values' => PiiRedactor::redactAudit($newValues),
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
             'created_at' => now(),
@@ -85,8 +85,8 @@ class AuditLogger
             'action' => $action,
             'entity_type' => $model::class,
             'entity_id' => $model->getKey(),
-            'old_values' => $oldValues,
-            'new_values' => $newValues,
+            'old_values' => PiiRedactor::redactAudit($oldValues),
+            'new_values' => PiiRedactor::redactAudit($newValues),
             'ip_address' => request()?->ip(),
             'user_agent' => request()?->userAgent(),
             'created_at' => now(),

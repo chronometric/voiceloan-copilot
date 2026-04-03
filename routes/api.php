@@ -11,9 +11,9 @@ use App\Http\Controllers\Api\VoiceToolController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [LoginController::class, 'login']);
+Route::middleware('throttle:login')->post('/login', [LoginController::class, 'login']);
 
-Route::middleware('voice.bridge')->prefix('voice')->group(function () {
+Route::middleware(['throttle:voice', 'voice.bridge'])->prefix('voice')->group(function () {
     Route::post('/sessions', [VoiceSessionController::class, 'store']);
     Route::get('/sessions/{callSid}/borrower', [VoiceSessionController::class, 'showBorrower']);
     Route::patch('/sessions/{callSid}/borrower', [VoiceSessionController::class, 'updateBorrower']);
@@ -22,7 +22,7 @@ Route::middleware('voice.bridge')->prefix('voice')->group(function () {
     Route::post('/tools', [VoiceToolController::class, 'execute']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/user', fn (Request $request) => $request->user());
 
     Route::get('/borrowers/{borrower}', [BorrowerController::class, 'show']);
