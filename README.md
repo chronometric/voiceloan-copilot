@@ -71,6 +71,11 @@ Set `VOICE_BRIDGE_KEY` in Laravel `.env` (same value as `voice-bridge/.env` `VOI
 - **TCPA / consent:** `config/compliance.php` documents that consent capture and legal copy are your responsibility; customize `sms_footer`, voice disclaimers, and internal policies with counsel before production outreach.
 - **Rate limits:** `config/rate_limits.php` + `AppServiceProvider` — `throttle:login` on `POST /api/login`, `throttle:voice` on `/api/voice/*`, `throttle:api` on Sanctum JSON API. Tune with `RATE_LIMIT_LOGIN_PER_MINUTE`, `RATE_LIMIT_VOICE_PER_MINUTE`, `RATE_LIMIT_API_PER_MINUTE`.
 
+### Phase 6 — Demo & handoff
+
+- **End-to-end demo (local):** Full checklist is in **`docs/DEMO_E2E.md`** — Laravel + voice-bridge + OpenAI Realtime, register a session, simulate or place a call, confirm URLA/borrower updates, then verify the **dashboard** and optional **SMS** follow-up.
+- **Loom / portfolio recording:** Use **`docs/LOOM_DEMO_SCRIPT.md`** — narrator script and shot list for a ~3–5 minute walkthrough of the same flow for clients or Upwork portfolio.
+
 ---
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
