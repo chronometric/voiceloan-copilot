@@ -10,6 +10,11 @@ use Illuminate\Support\Str;
 
 class Borrower extends Model
 {
+    public function getRouteKeyName(): string
+    {
+        return 'uuid';
+    }
+
     protected $fillable = [
         'uuid',
         'created_by_user_id',

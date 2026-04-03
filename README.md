@@ -2,9 +2,29 @@
 
 Session-based **auth** (`/login`, `/register`), **borrowers** plus **identity**, **employment**, **assets**, **declarations** tables, and **audit_logs**. Intended as the PHP dashboard for OpenAI Realtime + Twilio middleware.
 
-After `composer install`, copy `.env.example` to `.env`, run `php artisan key:generate`, create `database/database.sqlite` (or configure MySQL), then `php artisan migrate`.
+### Setup
 
-Routes: `/` (welcome or redirect to dashboard), `/login`, `/register`, `/dashboard` (auth).
+1. `composer install`
+2. Copy `.env.example` to `.env`, run `php artisan key:generate`
+3. SQLite (default): ensure `database/database.sqlite` exists; `DB_CONNECTION=sqlite` in `.env`
+4. `php artisan migrate`
+
+### Phase 1 (dashboard + API)
+
+- **Web:** `/dashboard`, `/borrowers` (list/create/edit with tabs: Main, Identity, Employment, Assets, Declarations, Audit)
+- **Audit:** model observers log create/update/delete on borrower-related models to `audit_logs` (user, entity, old/new JSON)
+- **API (Sanctum):** `POST /api/login` with `email`, `password` returns `{ "token": "...", "token_type": "Bearer" }`. Send `Authorization: Bearer <token>` and `Accept: application/json`.
+
+| Method | Endpoint |
+|--------|----------|
+| GET/PATCH/DELETE | `/api/borrowers/{uuid}` |
+| GET/PATCH | `/api/borrowers/{uuid}/identity` |
+| GET/POST/PATCH/DELETE | `/api/borrowers/{uuid}/employments` … `/employments/{id}` |
+| GET/POST/PATCH/DELETE | `/api/borrowers/{uuid}/assets` … `/assets/{id}` |
+| GET/PATCH | `/api/borrowers/{uuid}/declaration` |
+| GET | `/api/user` |
+
+Validation errors return **422** with Laravel’s standard `{ "message": "...", "errors": { "field": ["..."] } }` shape.
 
 ---
 
