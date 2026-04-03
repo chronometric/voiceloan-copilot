@@ -17,6 +17,8 @@ Route::middleware('voice.bridge')->prefix('voice')->group(function () {
     Route::post('/sessions', [VoiceSessionController::class, 'store']);
     Route::get('/sessions/{callSid}/borrower', [VoiceSessionController::class, 'showBorrower']);
     Route::patch('/sessions/{callSid}/borrower', [VoiceSessionController::class, 'updateBorrower']);
+    Route::get('/sessions/{callSid}/urla/context', [VoiceSessionController::class, 'urlaContext']);
+    Route::patch('/sessions/{callSid}/urla/state', [VoiceSessionController::class, 'updateUrlaState']);
     Route::post('/tools', [VoiceToolController::class, 'execute']);
 });
 

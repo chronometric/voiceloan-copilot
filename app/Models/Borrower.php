@@ -62,4 +62,9 @@ class Borrower extends Model
     {
         return $this->hasMany(AuditLog::class);
     }
+
+    public function urlaConversationState(): HasOne
+    {
+        return $this->hasOne(UrlaConversationState::class);
+    }
 }

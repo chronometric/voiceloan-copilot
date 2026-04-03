@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Borrower\UpdateBorrowerRequest;
 use App\Http\Resources\BorrowerResource;
 use App\Models\Borrower;
+use App\Services\Urla1003\UrlaConversationStateService;
 use Illuminate\Http\JsonResponse;
 
 class BorrowerController extends Controller
@@ -21,9 +22,13 @@ class BorrowerController extends Controller
 
     public function update(UpdateBorrowerRequest $request, Borrower $borrower): BorrowerResource
     {
-        $borrower->update($request->validated());
+        $validated = $request->validated();
+        $borrower->update($validated);
 
         $borrower->refresh()->load(['identity', 'employments', 'assets', 'declaration']);
+
+        $touched = array_map(static fn (string $k): string => 'borrower.'.$k, array_keys($validated));
+        app(UrlaConversationStateService::class)->syncAfterBorrowerPatch($borrower, null, $touched);
 
         return new BorrowerResource($borrower);
     }

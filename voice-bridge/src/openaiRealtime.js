@@ -25,13 +25,21 @@ export function buildSessionUpdate(callSid, borrowerUuid) {
         'You are a professional mortgage loan assistant.',
         'Use tools to read and update borrower data in the CRM. Never invent borrower data.',
         `This call is bound to call_sid=${callSid} and borrower_uuid=${borrowerUuid}.`,
-        'When you need CRM data, call get_borrower. To update top-level borrower fields, call patch_borrower with only the fields the user confirmed.',
+        'When you need CRM data, call get_borrower. For URLA/1003 conversational context (missing fields, compact snapshot, prompts), call get_urla_context.',
+        'To update top-level borrower fields, call patch_borrower with only the fields the user confirmed.',
       ].join('\n'),
       tools: [
         {
           type: 'function',
           name: 'get_borrower',
           description: 'Load the full borrower record (profile + sections) from the CRM.',
+          parameters: { type: 'object', properties: {}, additionalProperties: false },
+        },
+        {
+          type: 'function',
+          name: 'get_urla_context',
+          description:
+            'Load URLA/1003 prompt pack: system + section instructions, missing required fields, compact snapshot, clarification counts.',
           parameters: { type: 'object', properties: {}, additionalProperties: false },
         },
         {

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BorrowerResource;
 use App\Models\Borrower;
 use App\Models\VoiceCallSession;
+use App\Services\Urla1003\Urla1003PromptService;
+use App\Services\Urla1003\UrlaConversationStateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -43,10 +45,12 @@ class VoiceToolController extends Controller
 
         $name = $base['name'];
         $args = $base['arguments'] ?? [];
+        $callSid = $base['call_sid'];
 
         return match ($name) {
-            'get_borrower' => $this->toolGetBorrower($borrower),
-            'patch_borrower' => $this->toolPatchBorrower($borrower, $args),
+            'get_borrower' => $this->toolGetBorrower($borrower, $callSid),
+            'patch_borrower' => $this->toolPatchBorrower($borrower, $args, $callSid),
+            'get_urla_context' => $this->toolGetUrlaContext($borrower, $callSid),
             default => response()->json([
                 'ok' => false,
                 'error' => 'unknown_tool',
@@ -55,9 +59,13 @@ class VoiceToolController extends Controller
         };
     }
 
-    private function toolGetBorrower(Borrower $borrower): JsonResponse
+    private function toolGetBorrower(Borrower $borrower, string $callSid): JsonResponse
     {
         $borrower->load(['identity', 'employments', 'assets', 'declaration']);
+
+        $stateSvc = app(UrlaConversationStateService::class);
+        $stateSvc->syncAfterBorrowerPatch($borrower, $callSid, []);
+        $stateSvc->recordToolResult($borrower, $callSid, ['tool' => 'get_borrower']);
 
         return response()->json([
             'ok' => true,
@@ -65,7 +73,7 @@ class VoiceToolController extends Controller
         ]);
     }
 
-    private function toolPatchBorrower(Borrower $borrower, array $args): JsonResponse
+    private function toolPatchBorrower(Borrower $borrower, array $args, string $callSid): JsonResponse
     {
         $validator = Validator::make($args, [
             'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -83,13 +91,31 @@ class VoiceToolController extends Controller
             ], 422);
         }
 
-        $borrower->update($validator->validated());
+        $validated = $validator->validated();
+        $borrower->update($validated);
 
         $borrower->refresh()->load(['identity', 'employments', 'assets', 'declaration']);
+
+        $touched = array_map(static fn (string $k): string => 'borrower.'.$k, array_keys($validated));
+        app(UrlaConversationStateService::class)->syncAfterBorrowerPatch($borrower, $callSid, $touched);
 
         return response()->json([
             'ok' => true,
             'data' => (new BorrowerResource($borrower))->resolve(),
+        ]);
+    }
+
+    private function toolGetUrlaContext(Borrower $borrower, string $callSid): JsonResponse
+    {
+        $stateSvc = app(UrlaConversationStateService::class);
+        $state = $stateSvc->getOrCreate($borrower, $callSid);
+        $pack = app(Urla1003PromptService::class)->buildPack($borrower, $state);
+        $stateSvc->syncAfterBorrowerPatch($borrower, $callSid, []);
+        $stateSvc->recordToolResult($borrower, $callSid, ['tool' => 'get_urla_context']);
+
+        return response()->json([
+            'ok' => true,
+            'data' => $pack,
         ]);
     }
 }
