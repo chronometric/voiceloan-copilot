@@ -12,7 +12,7 @@ class Urla1003PromptService
     ) {}
 
     /**
-     * @return array{system: string, section_instruction: string, missing_fields: list<array{path: string, label: string, section: string}>, snapshot_compact: array<string, mixed>, stage: string, section: string, clarification_counts: array<string, int>}
+     * @return array{system: string, section_instruction: string, missing_fields: list<array{path: string, label: string, section: string}>, snapshot_compact: array<string, mixed>, stage: string, section: string, clarification_counts: array<string, int>, compliance: array{voice_disclaimer: string, sms_footer: string}}
      */
     public function buildPack(Borrower $borrower, UrlaConversationState $state): array
     {
@@ -29,6 +29,12 @@ class Urla1003PromptService
         $system .= "\n\nCurrent stage: {$stage}. Current section: {$section}.";
         $system .= "\nPrioritize asking about MISSING fields first (listed below).";
 
+        $voiceDisclaimer = trim((string) config('compliance.voice_disclaimer', ''));
+        if ($voiceDisclaimer !== '') {
+            $system .= "\n\n--- Compliance ---\n".$voiceDisclaimer;
+        }
+        $system .= "\n\nIf the borrower asks for a human, legal advice, or disputes terms, use the transfer_to_human tool.";
+
         $clarification = $state->clarification_counts ?? [];
 
         return [
@@ -39,6 +45,10 @@ class Urla1003PromptService
             'stage' => $stage,
             'section' => $section,
             'clarification_counts' => is_array($clarification) ? $clarification : [],
+            'compliance' => [
+                'voice_disclaimer' => $voiceDisclaimer,
+                'sms_footer' => trim((string) config('compliance.sms_footer', '')),
+            ],
         ];
     }
 }

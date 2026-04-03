@@ -4,6 +4,7 @@ namespace App\Http\Requests\Borrower;
 
 use App\Models\Borrower;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreBorrowerRequest extends FormRequest
 {
@@ -21,7 +22,7 @@ class StoreBorrowerRequest extends FormRequest
             'display_name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:32'],
-            'status' => ['required', 'string', 'max:32'],
+            'status' => ['required', 'string', Rule::in(config('borrower.statuses'))],
         ];
     }
 }

@@ -27,6 +27,7 @@ export function buildSessionUpdate(callSid, borrowerUuid) {
         `This call is bound to call_sid=${callSid} and borrower_uuid=${borrowerUuid}.`,
         'When you need CRM data, call get_borrower. For URLA/1003 conversational context (missing fields, compact snapshot, prompts), call get_urla_context.',
         'To update top-level borrower fields, call patch_borrower with only the fields the user confirmed.',
+        'To send an SMS (doc link or magic link), use send_sms. To hand off to a human, use transfer_to_human.',
       ].join('\n'),
       tools: [
         {
@@ -53,6 +54,34 @@ export function buildSessionUpdate(callSid, borrowerUuid) {
               email: { type: 'string' },
               phone: { type: 'string' },
               status: { type: 'string' },
+            },
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'send_sms',
+          description:
+            'Send SMS to the borrower phone (E.164). Optional link_url appended; optional to_e164 override.',
+          parameters: {
+            type: 'object',
+            properties: {
+              body: { type: 'string', description: 'SMS body (compliance footer appended server-side).' },
+              link_url: { type: 'string', description: 'Optional https URL appended after the body.' },
+              to_e164: { type: 'string', description: 'Optional E.164 override (default: borrower phone).' },
+            },
+            required: ['body'],
+            additionalProperties: false,
+          },
+        },
+        {
+          type: 'function',
+          name: 'transfer_to_human',
+          description: 'Escalate to a human loan officer; sets borrower status in the CRM.',
+          parameters: {
+            type: 'object',
+            properties: {
+              reason: { type: 'string' },
             },
             additionalProperties: false,
           },

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Borrower;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateBorrowerRequest extends FormRequest
 {
@@ -20,7 +21,7 @@ class UpdateBorrowerRequest extends FormRequest
             'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:32'],
-            'status' => ['sometimes', 'string', 'max:32'],
+            'status' => ['sometimes', 'string', Rule::in(config('borrower.statuses'))],
         ];
     }
 }
