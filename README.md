@@ -39,7 +39,7 @@ Set `VOICE_BRIDGE_KEY` in Laravel `.env` (same value as `voice-bridge/.env` `VOI
 | POST | `/api/voice/sessions` | Body: `{ "call_sid", "borrower_uuid" }` — bind Twilio CallSid → borrower |
 | GET | `/api/voice/sessions/{callSid}/borrower` | Full borrower JSON (for debugging / tools) |
 | PATCH | `/api/voice/sessions/{callSid}/borrower` | Partial update; **422** + `errors` for re-asks |
-| POST | `/api/voice/tools` | Body: `{ "call_sid", "name": "get_borrower" \| "get_urla_context" \| "patch_borrower", "arguments": {} }` — unified tool bridge |
+| POST | `/api/voice/tools` | Body: `{ "call_sid", "name", "arguments" }` — tools include `get_borrower`, `get_urla_context`, `patch_borrower`, `send_sms`, `transfer_to_human` |
 
 **Node bridge** (`voice-bridge/`): `npm install`, copy `.env.example` → `.env`, then `npm start`. Listens on `ws://0.0.0.0:8765/ws` by default. Twilio (or a test client) connects with query `?CallSid=...&BorrowerUuid=<uuid>`. The service registers the session in Laravel, opens **OpenAI Realtime** WebSocket, relays audio/text, and runs tools via `/api/voice/tools`. Realtime event names vary by API revision — adjust `voice-bridge/src/openaiRealtime.js` `parseFunctionCallEvent` if needed.
 
@@ -47,14 +47,21 @@ Set `VOICE_BRIDGE_KEY` in Laravel `.env` (same value as `voice-bridge/.env` `VOI
 
 - **Field inventory:** `config/urla1003.php` — stages (`intake` → `review`), `required_by_stage` paths (dot notation), `fields` labels, and `prompts` (system + per-section copy).
 - **Services:** `App\Services\Urla1003\` — `Urla1003FieldResolver`, `Urla1003SnapshotService` (compact snapshot + missing fields per stage), `Urla1003PromptService` (prompt pack), `UrlaConversationStateService` (state + sync after PATCH/tools).
-- **State (DB):** `urla_conversation_states` — one row per borrower (`borrower_id` unique), optional `call_sid`, `current_stage`, `current_section`, `clarification_counts` (JSON), `last_tool_results` (JSON). Sync runs after voice `PATCH /borrower`, and after tools `get_borrower`, `patch_borrower`, `get_urla_context`.
+- **State (DB):** `urla_conversation_states` — one row per borrower (`borrower_id` unique), optional `call_sid`, `current_stage`, `current_section`, `clarification_counts` (JSON), `last_tool_results` (JSON). Sync runs after voice `PATCH /borrower`, and after tools `get_borrower`, `patch_borrower`, `get_urla_context`, `transfer_to_human`.
 
 | Method | Endpoint |
 |--------|----------|
 | GET | `/api/voice/sessions/{callSid}/urla/context` — prompt pack (system, section_instruction, missing_fields, snapshot_compact, clarification_counts) |
 | PATCH | `/api/voice/sessions/{callSid}/urla/state` — body: `current_stage` and/or `current_section` and/or `increment_clarification_for` (field path) |
 
-**Voice tools:** `get_urla_context` (same payload as GET), plus `get_borrower` / `patch_borrower`. Redis optional; this implementation uses the database only.
+**Voice tools:** `get_urla_context` (same payload as GET), `get_borrower`, `patch_borrower`, plus Phase 4 tools below. Redis optional; this implementation uses the database only.
+
+### Phase 4 — Twilio + SMS + compliance
+
+- **SMS:** `App\Services\TwilioSmsService` → Twilio REST API (`TWILIO_*` in `.env`). Voice tool `send_sms` with `body`, optional `link_url`, optional `to_e164`. Compliance footer from `config/compliance.php` is appended to every SMS.
+- **Audit:** successful sends log `sms_sent`; failures log `sms_failed` on `audit_logs` (`entity_type` `sms.outbound`, `new_values` JSON).
+- **Compliance:** `config/compliance.php` — `voice_disclaimer` (injected into URLA prompt pack + line about `transfer_to_human`), `sms_footer`, `transfer_status` (default `escalated`).
+- **transfer_to_human:** voice tool sets borrower `status` to `transfer_status` (must be in `config/borrower.statuses`); optional `reason` stored in `last_tool_results` / tool response.
 
 ---
 

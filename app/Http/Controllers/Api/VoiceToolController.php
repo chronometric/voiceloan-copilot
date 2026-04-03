@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\BorrowerResource;
 use App\Models\Borrower;
 use App\Models\VoiceCallSession;
+use App\Services\TwilioSmsService;
 use App\Services\Urla1003\Urla1003PromptService;
 use App\Services\Urla1003\UrlaConversationStateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 /**
  * Single entry for OpenAI Realtime tool calls from the voice-bridge (JSON in/out).
@@ -51,6 +53,8 @@ class VoiceToolController extends Controller
             'get_borrower' => $this->toolGetBorrower($borrower, $callSid),
             'patch_borrower' => $this->toolPatchBorrower($borrower, $args, $callSid),
             'get_urla_context' => $this->toolGetUrlaContext($borrower, $callSid),
+            'send_sms' => $this->toolSendSms($borrower, $args, $callSid),
+            'transfer_to_human' => $this->toolTransferToHuman($borrower, $args, $callSid),
             default => response()->json([
                 'ok' => false,
                 'error' => 'unknown_tool',
@@ -79,7 +83,7 @@ class VoiceToolController extends Controller
             'display_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'phone' => ['sometimes', 'nullable', 'string', 'max:32'],
-            'status' => ['sometimes', 'string', 'max:32'],
+            'status' => ['sometimes', 'string', Rule::in(config('borrower.statuses'))],
         ]);
 
         if ($validator->fails()) {
@@ -116,6 +120,94 @@ class VoiceToolController extends Controller
         return response()->json([
             'ok' => true,
             'data' => $pack,
+        ]);
+    }
+
+    private function toolSendSms(Borrower $borrower, array $args, string $callSid): JsonResponse
+    {
+        $validator = Validator::make($args, [
+            'body' => ['required', 'string', 'max:1600'],
+            'link_url' => ['nullable', 'url', 'max:2048'],
+            'to_e164' => ['nullable', 'string', 'regex:/^\+[1-9]\d{6,14}$/'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'validation_failed',
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $body = $validated['body'];
+        if (! empty($validated['link_url'])) {
+            $body .= "\n\n".$validated['link_url'];
+        }
+
+        $result = app(TwilioSmsService::class)->sendToBorrower(
+            $borrower,
+            $body,
+            $validated['to_e164'] ?? null,
+        );
+
+        if (! $result['ok']) {
+            return response()->json([
+                'ok' => false,
+                'error' => $result['error'] ?? 'sms_failed',
+                'detail' => $result['detail'] ?? null,
+            ], 422);
+        }
+
+        app(UrlaConversationStateService::class)->recordToolResult($borrower, $callSid, [
+            'tool' => 'send_sms',
+            'twilio_sid' => $result['twilio_sid'] ?? null,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'data' => $result,
+        ]);
+    }
+
+    private function toolTransferToHuman(Borrower $borrower, array $args, string $callSid): JsonResponse
+    {
+        $validator = Validator::make($args, [
+            'reason' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'error' => 'validation_failed',
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $reason = $validator->validated()['reason'] ?? null;
+
+        $status = config('compliance.transfer_status', 'escalated');
+        if (! in_array($status, config('borrower.statuses', []), true)) {
+            $status = 'escalated';
+        }
+
+        $borrower->update(['status' => $status]);
+        $borrower->refresh()->load(['identity', 'employments', 'assets', 'declaration']);
+
+        app(UrlaConversationStateService::class)->syncAfterBorrowerPatch($borrower, $callSid, ['borrower.status']);
+        app(UrlaConversationStateService::class)->recordToolResult($borrower, $callSid, [
+            'tool' => 'transfer_to_human',
+            'reason' => $reason,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'data' => [
+                'status' => $borrower->status,
+                'reason' => $reason,
+                'borrower' => (new BorrowerResource($borrower))->resolve(),
+            ],
         ]);
     }
 }

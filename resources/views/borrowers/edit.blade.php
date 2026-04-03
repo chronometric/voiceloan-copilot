@@ -53,7 +53,7 @@
                 <div class="field">
                     <label for="status">{{ __('Status') }}</label>
                     <select id="status" name="status">
-                        @foreach(['draft' => __('Draft'), 'in_progress' => __('In progress'), 'submitted' => __('Submitted')] as $val => $label)
+                        @foreach(['draft' => __('Draft'), 'in_progress' => __('In progress'), 'submitted' => __('Submitted'), 'escalated' => __('Escalated (human)')] as $val => $label)
                             <option value="{{ $val }}" @selected(old('status', $borrower->status) === $val)>{{ $label }}</option>
                         @endforeach
                     </select>

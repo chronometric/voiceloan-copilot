@@ -51,6 +51,27 @@ class AuditLogger
         self::write($borrowerId, $model, 'deleted', self::sanitizeAttributes($model->getOriginal()), null);
     }
 
+    /**
+     * Non-Eloquent events (SMS, voice tools, etc.) tied to a borrower.
+     *
+     * @param  array<string, mixed>|null  $newValues
+     */
+    public static function logBorrowerEvent(int $borrowerId, string $action, string $entityType, ?array $newValues): void
+    {
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'borrower_id' => $borrowerId,
+            'action' => $action,
+            'entity_type' => $entityType,
+            'entity_id' => null,
+            'old_values' => null,
+            'new_values' => $newValues,
+            'ip_address' => request()?->ip(),
+            'user_agent' => request()?->userAgent(),
+            'created_at' => now(),
+        ]);
+    }
+
     private static function write(
         int $borrowerId,
         Model $model,
