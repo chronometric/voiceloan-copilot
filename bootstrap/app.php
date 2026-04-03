@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->alias([
+            'voice.bridge' => \App\Http\Middleware\VerifyVoiceBridgeKey::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

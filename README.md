@@ -26,6 +26,23 @@ Session-based **auth** (`/login`, `/register`), **borrowers** plus **identity**,
 
 Validation errors return **422** with Laravel’s standard `{ "message": "...", "errors": { "field": ["..."] } }` shape.
 
+### Phase 2 — Voice middleware (Node)
+
+Set `VOICE_BRIDGE_KEY` in Laravel `.env` (same value as `voice-bridge/.env` `VOICE_BRIDGE_KEY`).
+
+| Header | Value |
+|--------|--------|
+| `X-Voice-Bridge-Key` | `VOICE_BRIDGE_KEY` |
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/voice/sessions` | Body: `{ "call_sid", "borrower_uuid" }` — bind Twilio CallSid → borrower |
+| GET | `/api/voice/sessions/{callSid}/borrower` | Full borrower JSON (for debugging / tools) |
+| PATCH | `/api/voice/sessions/{callSid}/borrower` | Partial update; **422** + `errors` for re-asks |
+| POST | `/api/voice/tools` | Body: `{ "call_sid", "name": "get_borrower" \| "patch_borrower", "arguments": {} }` — unified tool bridge |
+
+**Node bridge** (`voice-bridge/`): `npm install`, copy `.env.example` → `.env`, then `npm start`. Listens on `ws://0.0.0.0:8765/ws` by default. Twilio (or a test client) connects with query `?CallSid=...&BorrowerUuid=<uuid>`. The service registers the session in Laravel, opens **OpenAI Realtime** WebSocket, relays audio/text, and runs `get_borrower` / `patch_borrower` via `/api/voice/tools`. Realtime event names vary by API revision — adjust `voice-bridge/src/openaiRealtime.js` `parseFunctionCallEvent` if needed.
+
 ---
 
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>

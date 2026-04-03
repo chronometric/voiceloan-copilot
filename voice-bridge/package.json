@@ -1,0 +1,17 @@
+{
+  "name": "voiceloan-voice-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "WebSocket bridge: Twilio Conversation Relay ↔ OpenAI Realtime API ↔ Laravel voice tools",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  }
+}
